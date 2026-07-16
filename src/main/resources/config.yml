@@ -1,0 +1,10 @@
+# NeonCrates Main Configuration
+
+# Keyall scheduled interval (in seconds)
+keyall-interval-seconds: 3600
+
+# Bonus countdown settings
+bonus-min-days: 1
+bonus-max-days: 3
+bonus-crates:
+  - "common-crate"
