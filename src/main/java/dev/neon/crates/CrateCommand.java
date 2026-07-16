@@ -3,6 +3,7 @@ package dev.neon.crates;
 import dev.neon.crates.NeonCrates;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
@@ -139,9 +140,19 @@ public class CrateCommand implements CommandExecutor, TabCompleter, Listener {
                     return true;
                 }
                 String crateId = args[1];
+                if (!plugin.getCrateManager().getCrateIds().contains(crateId)) {
+                    sender.sendMessage(Component.text("Unknown crate: " + crateId, NamedTextColor.RED));
+                    return true;
+                }
                 int count = 0;
                 for (Player p : plugin.getServer().getOnlinePlayers()) {
                     plugin.getKeyManager().addVirtualKeys(p.getUniqueId(), crateId, 1);
+                    p.sendMessage(Component.text()
+                            .append(Component.text("KEYALL ", NamedTextColor.AQUA, TextDecoration.BOLD))
+                            .append(Component.text("» ", NamedTextColor.DARK_GRAY))
+                            .append(Component.text("You received 1 virtual " + crateId + " key!", NamedTextColor.WHITE))
+                            .build());
+                    p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
                     count++;
                 }
                 sender.sendMessage(Component.text("Gave 1 virtual " + crateId + " key to " + count + " player(s).", NamedTextColor.GREEN));

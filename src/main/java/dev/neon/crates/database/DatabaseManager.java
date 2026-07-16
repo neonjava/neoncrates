@@ -9,6 +9,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +33,14 @@ public class DatabaseManager {
             plugin.getDataFolder().mkdirs();
         }
         this.dbFile = new File(plugin.getDataFolder(), "database.db");
+        if (!dbFile.exists()) {
+            try {
+                plugin.saveResource("database.db", false);
+                plugin.getLogger().info("[DatabaseManager] Copied default database.db from plugin resources.");
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("[DatabaseManager] Default database.db was not found in plugin jar resources, a new blank database will be created.");
+            }
+        }
     }
 
     public ExecutorService getExecutor() {
@@ -112,6 +122,92 @@ public class DatabaseManager {
                 plugin.getLogger().warning("[DatabaseManager] Error registering player: " + e.getMessage());
             }
         }, dbExecutor);
+    }
+
+    public void mergePlayerData(UUID currentUuid, String username) {
+        CompletableFuture.runAsync(() -> {
+            mergePlayerDataSync(currentUuid, username);
+        }, dbExecutor);
+    }
+
+    public void mergePlayerDataSync(UUID currentUuid, String username) {
+        List<String> otherUuids = new ArrayList<>();
+        String sqlSelectUuids = "SELECT DISTINCT uuid FROM players WHERE LOWER(username) = LOWER(?) AND uuid != ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sqlSelectUuids)) {
+            ps.setString(1, username);
+            ps.setString(2, currentUuid.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    otherUuids.add(rs.getString("uuid"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[DatabaseManager] Error fetching other UUIDs for merge: " + e.getMessage());
+            return;
+        }
+
+        if (otherUuids.isEmpty()) return;
+
+        plugin.getLogger().info("[DatabaseManager] Found " + otherUuids.size() + " other UUID(s) for player " + username + ". Merging keys...");
+
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                for (String oldUuid : otherUuids) {
+                    String selectKeysSql = "SELECT crate_id, amount FROM crate_virtual_keys WHERE uuid = ?";
+                    try (PreparedStatement psKeys = conn.prepareStatement(selectKeysSql)) {
+                        psKeys.setString(1, oldUuid);
+                        try (ResultSet rsKeys = psKeys.executeQuery()) {
+                            while (rsKeys.next()) {
+                                String crateId = rsKeys.getString("crate_id");
+                                long amount = rsKeys.getLong("amount");
+                                if (amount > 0) {
+                                    String insertMergeSql = """
+                                            INSERT INTO crate_virtual_keys (uuid, crate_id, amount)
+                                            VALUES (?, ?, ?)
+                                            ON CONFLICT(uuid, crate_id) DO UPDATE SET amount = amount + excluded.amount;
+                                            """;
+                                    try (PreparedStatement psMerge = conn.prepareStatement(insertMergeSql)) {
+                                        psMerge.setString(1, currentUuid.toString());
+                                        psMerge.setString(2, crateId);
+                                        psMerge.setLong(3, amount);
+                                        psMerge.executeUpdate();
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    String deleteOldKeysSql = "DELETE FROM crate_virtual_keys WHERE uuid = ?";
+                    try (PreparedStatement psDel = conn.prepareStatement(deleteOldKeysSql)) {
+                        psDel.setString(1, oldUuid);
+                        psDel.executeUpdate();
+                    }
+
+                    String deleteOldTracking = "DELETE FROM keyall_tracking WHERE uuid = ?";
+                    try (PreparedStatement psDelTrack = conn.prepareStatement(deleteOldTracking)) {
+                        psDelTrack.setString(1, oldUuid);
+                        psDelTrack.executeUpdate();
+                    }
+
+                    String deleteOldPlayer = "DELETE FROM players WHERE uuid = ?";
+                    try (PreparedStatement psDelPlayer = conn.prepareStatement(deleteOldPlayer)) {
+                        psDelPlayer.setString(1, oldUuid);
+                        psDelPlayer.executeUpdate();
+                    }
+                }
+                conn.commit();
+                plugin.getLogger().info("[DatabaseManager] Successfully merged keys for " + username + " under current UUID: " + currentUuid);
+            } catch (SQLException e) {
+                conn.rollback();
+                plugin.getLogger().severe("[DatabaseManager] Error transaction rollback during merge: " + e.getMessage());
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("[DatabaseManager] Database error during merge: " + e.getMessage());
+        }
     }
 
     public UUID getUUIDByName(String username) {

@@ -91,8 +91,11 @@ public class KeyManager {
     }
 
     // Load data asynchronously on player join
-    public void loadPlayerData(UUID uuid) {
+    public void loadPlayerData(UUID uuid, String username) {
         CompletableFuture.runAsync(() -> {
+            if (username != null) {
+                plugin.getDatabaseManager().mergePlayerDataSync(uuid, username);
+            }
             // 1. Load virtual keys
             Map<String, Long> keys = new ConcurrentHashMap<>();
             String sqlKeys = "SELECT crate_id, amount FROM crate_virtual_keys WHERE uuid = ?";

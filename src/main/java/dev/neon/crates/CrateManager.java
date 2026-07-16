@@ -489,8 +489,10 @@ public class CrateManager implements Listener {
                             .append(Component.text(" to open this crate!", NamedTextColor.RED)));
                     return;
                 }
-                player.getInventory().addItem(pending.reward().item().clone());
                 List<String> commands = new ArrayList<>(pending.reward().commands());
+                if (commands.isEmpty()) {
+                    player.getInventory().addItem(pending.reward().item().clone());
+                }
                 Bukkit.getGlobalRegionScheduler().run(plugin, (task) -> {
                     for (String cmd : commands) {
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
@@ -729,9 +731,10 @@ public class CrateManager implements Listener {
                     task.cancel();
                     CrateReward finalReward = rewards.get(rand.nextInt(rewards.size()));
 
-                    player.getInventory().addItem(finalReward.item().clone());
-
                     List<String> commands = new ArrayList<>(finalReward.commands());
+                    if (commands.isEmpty()) {
+                        player.getInventory().addItem(finalReward.item().clone());
+                    }
                     Bukkit.getGlobalRegionScheduler().run(plugin, (gt) -> {
                         for (String cmd : commands) {
                             Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
