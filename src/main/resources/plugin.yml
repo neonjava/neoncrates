@@ -1,0 +1,13 @@
+name: NeonCrates
+version: '${project.version}'
+main: dev.neon.crates.NeonCrates
+api-version: '1.21'
+folia-supported: true
+authors: [ Neon ]
+description: Standalone NeonCrates Plugin
+
+commands:
+  crate:
+    description: Bind blocks to crates or manage virtual keys.
+    permission: neoncrates.admin
+    usage: /crate <bind|unbind|givekey|keyall|edit|reload>
