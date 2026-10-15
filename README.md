@@ -1,33 +1,23 @@
 # NeonCrates
 
-A high-performance, asynchronous SQLite & Paper/Folia crate plugin with interactive roulette GUI animations and keys management.
+Paper and Folia crate plugin with keys, rewards, and roulette animations.
 
-## 🌟 Features
+![How it works](docs/workflow.svg)
 
-- 🎁 **Interactive Crate Animations**: Smooth GUI roulettes and physical chest interaction.
-- ⚡ **SQLite Async Storage**: Player keys stored thread-safely without main thread locking.
-- 🔑 **Virtual & Physical Keys**: Supports physical key items and virtual key balances via commands.
+## What it does
 
----
+- Interactive crate opening interface.
+- Virtual and physical keys.
+- SQLite backed key storage.
 
-## 🛠️ Installation
+## Getting started
 
-1. Download `NeonCrates.jar`.
-2. Place it in `plugins/` directory.
-3. Restart or reload your server.
+Build with `mvn package`, then place the JAR from `target/` in your server’s `plugins/` directory.
 
----
+## Security
 
-## 📦 Building from Source
+Keep credentials in local environment files. The example files contain placeholders only. Rotate any credential previously used in a local deployment before publishing or redeploying.
 
-```bash
-mvn clean package
-```
+## License
 
-The output `.jar` will be saved in `target/`.
-
----
-
-## 📜 License
-
-Distributed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) for details.
+See [LICENSE](LICENSE).
