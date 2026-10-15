@@ -1,1 +1,6 @@
 target/
+
+# Local credentials
+.env
+.env.*
+!.env.example
