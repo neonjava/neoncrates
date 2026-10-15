@@ -20,4 +20,4 @@ Keep credentials in local environment files. The example files contain placehold
 
 ## License
 
-See [LICENSE](LICENSE).
+The project code is licensed under AGPL-3.0-only. See [LICENSE](LICENSE).
